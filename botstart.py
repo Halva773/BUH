@@ -2,10 +2,11 @@ import telebot
 from telebot import types
 from dadata import Dadata
 from operations import checkLocation
+from creds import DaDataToken, telebot_token
 
-DaDatatoken = "38cd715009142d4508117d5293e2cbec136496ac"
-dadata = Dadata(DaDatatoken)
-bot = telebot.TeleBot('5129455571:AAH_BQdFaVmkrLYpGJ3ksZzNErW0eKU6A1g')
+
+dadata = Dadata(DaDataToken)
+bot = telebot.TeleBot(telebot_token)
 
 
 @bot.message_handler(commands=["geo"])
@@ -15,6 +16,14 @@ def geo(message):
     keyboard.add(button_geo)
     bot.send_message(message.chat.id, "Привет! Нажми на кнопку и передай мне свое местоположение", reply_markup=keyboard)
 
+@bot.message_handler(commands=["start"])
+def start (message):
+    #Клавиатура с кнопкой запроса локации
+    keyboard = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
+    button_reg = types.KeyboardButton(text="Создать группу")
+    button_sing = types.KeyboardButton(text="Найти группу")
+    keyboard.add(button_reg, button_sing)
+    bot.send_message(message.chat.id, "Поделись местоположением", reply_markup=keyboard)
 @bot.message_handler(content_types=["location"])
 def location(message):
     usermessage = ''
@@ -26,7 +35,7 @@ def location(message):
         for loc in location:
             usermessage += loc['value'] + "\n"
         print(usermessage)
-        if checkLocation(lat, lon):
+        if checkLocation(location):
             usermessage += "Ты чё в телеге сидишь? Иди ботай!"
         bot.send_message(message.chat.id, f"Your possible locations is:\n{usermessage}")
 
