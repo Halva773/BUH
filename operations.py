@@ -1,4 +1,4 @@
-print("Файл operations.py запущен:")
+print("[START] Файл operations.py запущен")
 
 
 def checkLocation(location):
@@ -10,7 +10,7 @@ def checkLocation(location):
 
 
 def generateID():
-    i = 1
+    i = 0
     while True:
         i += 1
         yield i

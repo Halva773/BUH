@@ -8,9 +8,12 @@ from creds import DaDataToken, telebot_token
 
 dadata = Dadata(DaDataToken)
 bot = telebot.TeleBot(telebot_token)
+
+newUser = {'fio': None,
+           'id': None}
 userDict = {"group_name": None,
             "admin_name": None}
-print("Бот запущен")
+print("[START] Бот запущен")
 
 
 @bot.message_handler(commands=["geo"])
@@ -35,18 +38,21 @@ def start(message):
 
 @bot.message_handler(content_types=["text"])
 def buttonsCheck(message):
+    global newUser
+    print(f"[MESSAGE] {message.text}")
     if message.text == "Создать группу":
         print("[INFO] Create Group")
         markup = types.ReplyKeyboardRemove(selective=False)
         msg = bot.send_message(message.chat.id, 'Название группы?', reply_markup=markup)
         bot.register_next_step_handler(msg, fio)
     elif message.text == "Найти группу":
-        bot.send_message(message.chat.id, "Вы пытаетесь найти группу")
+        msg = bot.send_message(message.chat.id, "Напишите своё ФИО")
+        bot.register_next_step_handler(msg, userAuth)
     elif message.text == "Да, всё верно":
         groupid = operations.generateID()
         admin_id = int(message.chat.id)
         database.create_group(userDict['group_name'], next(groupid), admin_id)
-        bot.send_message(message.fron_user.id, f"Группа {userDict['group_name']} успешно создана\nID вашей группы: "
+        bot.send_message(message.from_user.id, f"Группа {userDict['group_name']} успешно создана\nID вашей группы: "
                                                f"{groupid}\nИспользуйте этот ID для добавления других пользователей")
 
 
@@ -83,6 +89,47 @@ def location(message):
         if operations.checkLocation(location):
             usermessage += "Ты чё в телеге сидишь? Иди ботай!"
         bot.send_message(message.chat.id, f"Your possible locations is:\n{usermessage}")
+
+
+@bot.message_handler(content_types=['text'])
+def userAuth(message):
+    global newUser
+    newUser['fio'] = message.text
+    msg = bot.send_message(message.chat.id, "Введите ID группы")
+    bot.register_next_step_handler(msg, groupSearch)
+
+
+@bot.message_handler(content_types=['text'])
+def groupSearch(message):
+    global newUser
+    try:
+        group = database.searchGroupData(message.text)[0]
+        keyboard = types.InlineKeyboardMarkup(row_width=2)
+        acceptButton = types.InlineKeyboardButton(text="Принять ✅",
+                                                  callback_data=str({'action': '0',
+                                                                     'group_id': message.text,
+                                                                     'user': [message.from_user.id, newUser['fio']]}))
+        denyButton = types.InlineKeyboardButton(text="Отклонить ❌",
+                                                callback_data=str({'action': '0',
+                                                                   'group_id': message.text,
+                                                                   'user': [newUser['id'], newUser['fio']]}))
+        keyboard.add(acceptButton, denyButton)
+        bot.send_message(group['admin_id'],
+                         f"Пользователь {newUser['fio']} запрашивает вход в группу", reply_markup=keyboard)
+        bot.send_message(message.from_user.id,
+                         f"Группа {group['group_name']} найдена. Заявка на вступление отправлена администратору группы")
+    except IndexError:
+        bot.send_message(message.from_user.id, "Группа с таким ID не найдена")
+
+
+@bot.callback_query_handler(func=lambda call: True)
+def callback_inline(call):
+    if call.data:
+        data = eval(call.data)
+        if data['action']:
+            group = database.searchGroupData(data['group_id'])[0]
+            print(data['user'][0], data['user'][1], group['group_name'])
+            database.join_user(data['user'][0], data['user'][1], group['group_name'])
 
 
 bot.polling(none_stop=True)
