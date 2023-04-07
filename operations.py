@@ -10,7 +10,7 @@ def checkLocation(location):
 
 
 def generateID():
-    i = 0
+    i = 2
     while True:
         i += 1
         yield i

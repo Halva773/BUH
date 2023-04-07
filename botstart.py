@@ -49,9 +49,9 @@ def buttonsCheck(message):
         msg = bot.send_message(message.chat.id, "Напишите своё ФИО")
         bot.register_next_step_handler(msg, userAuth)
     elif message.text == "Да, всё верно":
-        groupid = operations.generateID()
-        admin_id = int(message.chat.id)
-        database.create_group(userDict['group_name'], next(groupid), admin_id)
+        generateID = operations.generateID()
+        groupid = next(generateID)
+        database.create_group(userDict['group_name'], groupid, message.chat.id, userDict['admin_name'])
         bot.send_message(message.from_user.id, f"Группа {userDict['group_name']} успешно создана\nID вашей группы: "
                                                f"{groupid}\nИспользуйте этот ID для добавления других пользователей")
 
@@ -104,15 +104,17 @@ def groupSearch(message):
     global newUser
     try:
         group = database.searchGroupData(message.text)[0]
+        group['admin_id'] = database.searchAdminData(group['group_name'])[0]['id']
         keyboard = types.InlineKeyboardMarkup(row_width=2)
+        database.join_user(message.from_user.id, newUser['fio'], group['group_name'], 'req')
         acceptButton = types.InlineKeyboardButton(text="Принять ✅",
-                                                  callback_data=str({'action': '0',
+                                                  callback_data=str({'action': '1',
                                                                      'group_id': message.text,
-                                                                     'user': [message.from_user.id, newUser['fio']]}))
+                                                                     'user': message.from_user.id}))
         denyButton = types.InlineKeyboardButton(text="Отклонить ❌",
                                                 callback_data=str({'action': '0',
                                                                    'group_id': message.text,
-                                                                   'user': [newUser['id'], newUser['fio']]}))
+                                                                   'user': message.from_user.id}))
         keyboard.add(acceptButton, denyButton)
         bot.send_message(group['admin_id'],
                          f"Пользователь {newUser['fio']} запрашивает вход в группу", reply_markup=keyboard)
@@ -126,10 +128,14 @@ def groupSearch(message):
 def callback_inline(call):
     if call.data:
         data = eval(call.data)
-        if data['action']:
-            group = database.searchGroupData(data['group_id'])[0]
-            print(data['user'][0], data['user'][1], group['group_name'])
-            database.join_user(data['user'][0], data['user'][1], group['group_name'])
+        print(data)
+        group = database.searchGroupData(data['group_id'])[0]
+        database.response_handler(data['action'], group['group_name'], data['user'])
+        print(data)
+        if data['action'] == "1":
+            bot.send_message(data['user'][0], f'Запрос на вступление в группу {group["group_name"]} принят!')
+        else:
+            bot.send_message(data['user'][0], f'Запрос на вступление в группу {group["group_name"]} был отклонён')
 
 
 bot.polling(none_stop=True)
