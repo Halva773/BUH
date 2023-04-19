@@ -1,3 +1,5 @@
+from datetime import datetime
+
 print("[START] Файл operations.py запущен")
 
 
@@ -8,13 +10,14 @@ def checkLocation(location):
     return False
 
 
-
 def generateID():
     i = 2
     while True:
         i += 1
         yield i
 
-# lat=55.717903, lon=37.795361
-    # location = dadata.geolocate(name="address", lat=55.717903, lon=37.795361, radius_meters=50)
-    # print(checkLocation(location))
+
+def get_current_time():
+    current_datetime = datetime.now()
+    current_time = f"{current_datetime.day}-{current_datetime.month}-{current_datetime.year} {current_datetime.hour}:{current_datetime.minute}:{current_datetime.second}"
+    return current_time
