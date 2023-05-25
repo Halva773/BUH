@@ -1,5 +1,7 @@
 from datetime import datetime
 
+import database
+
 print("[START] Файл operations.py запущен")
 
 
@@ -17,7 +19,43 @@ def generateID():
         yield i
 
 
+def get_student_list(admin_id, current_lesson):
+    result = []
+    lessons_time = [94500, 112500, 130500, 151500, 165500, 183500]
+    group_name = database.find_group_with_id(admin_id)
+    users = database.get_time_of_group_members(group_name)
+    current_datetime = datetime.now()
+    current_date = f"{current_datetime.day}-{current_datetime.month}-{current_datetime.year}"
+    for user in users:
+        user_date = user['last_join_time'].split(' ')[0]
+        user_time = int("".join(user['last_join_time'].split(' ')[1].split(":")))
+        if user_date == current_date and lessons_time[current_lesson - 2] < user_time < lessons_time[current_lesson - 1]:
+            result.append(user['student_name'])
+    return generate_message(result, current_lesson, group_name)
+
+
+def generate_message(noted, current_lesson, group_name):
+    if len(noted) < 1:
+        pass
+    msg = f"Номер пары: {current_lesson}\nФИО\t\tОтметка\n"
+    users = database.get_time_of_group_members(group_name)
+    for user in users:
+        mark = ('*' if user['student_name'] in noted else "н")
+        student = user['student_name'].split()
+        msg += f"{student[0]} {student[1]}\t{mark}\n"
+    return msg
+
+
 def get_current_time():
     current_datetime = datetime.now()
-    current_time = f"{current_datetime.day}-{current_datetime.month}-{current_datetime.year} {current_datetime.hour}:{current_datetime.minute}:{current_datetime.second}"
+    time = [str(current_datetime.hour), str(current_datetime.minute), str(current_datetime.second)]
+    for item in range(len(time)):
+        if len(time[item]) < 2:
+            time[item] = "0" + time[item]
+    current_time = f"{current_datetime.day}-{current_datetime.month}-{current_datetime.year} {time[0]}:{time[1]}:{time[2]}"
     return current_time
+
+
+if __name__ == '__main__':
+    print(get_current_time())
+    # get_student_list(968913533)

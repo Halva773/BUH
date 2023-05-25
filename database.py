@@ -4,6 +4,7 @@ from creds import password, user
 from operations import get_current_time
 
 
+
 def table_connect():
     connections = pymysql.connect(
         host="localhost",
@@ -12,7 +13,6 @@ def table_connect():
         db="BUH",
         password=password,
         cursorclass=pymysql.cursors.DictCursor)
-    print(f"[INFO] Подключение к бд прошло успешно...")
     return connections
 
 
@@ -95,6 +95,8 @@ def find_user_in_group(group_name, id):
     return result
 
 
+
+
 def find_group_with_id(id):
     tables = []
     for table in get_tables():
@@ -103,3 +105,12 @@ def find_group_with_id(id):
         if find_user_in_group(table, id) != ():
             return table
     return False
+
+
+def get_time_of_group_members(group_name):
+    connection = table_connect()
+    with connection.cursor() as cursor:
+        request = f"select * from {group_name} order by student_name;"
+        cursor.execute(request)
+        result = cursor.fetchall()
+    return result

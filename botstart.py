@@ -1,3 +1,7 @@
+from threading import Thread
+from time import sleep
+
+import schedule
 import telebot
 from dadata import Dadata
 from telebot import types
@@ -5,6 +9,7 @@ from telebot import types
 import database
 import operations
 from creds import DaDataToken, telebot_token
+from gmailAPI import check_email
 
 dadata = Dadata(DaDataToken)
 bot = telebot.TeleBot(telebot_token)
@@ -18,13 +23,22 @@ print("[START] Бот запущен")
 
 @bot.message_handler(commands=["start"])
 def start(message):
-    # Клавиатура с кнопкой запроса локации
-    keyboard = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
-    button_reg = types.KeyboardButton(text="Создать группу")
-    button_sing = types.KeyboardButton(text="Найти группу")
-    keyboard.add(button_reg, button_sing)
-    msg = bot.send_message(message.chat.id, "Привет!!", reply_markup=keyboard)
-    bot.register_next_step_handler(msg, buttonsCheck)
+    if database.find_group_with_id(message.chat.id) == False:
+        # Клавиатура с кнопкой запроса локации
+        keyboard = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
+        button_reg = types.KeyboardButton(text="Создать группу")
+        button_sing = types.KeyboardButton(text="Найти группу")
+        keyboard.add(button_reg, button_sing)
+        msg = bot.send_message(message.chat.id, "Привет!!", reply_markup=keyboard)
+        bot.register_next_step_handler(msg, buttonsCheck)
+    else:
+        keyboard = types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
+        button_geo = types.KeyboardButton(text="Отправить местоположение",
+                                          request_location=True)
+        keyboard.add(button_geo)
+        bot.send_message(message.chat.id,
+                         "Вы уже зарегестрированы в системе и не можете находитсья в более, чем 1 группе",
+                         reply_markup=keyboard)
 
 
 @bot.message_handler(content_types=["text"])
@@ -50,7 +64,7 @@ def buttonsCheck(message):
         database.create_group(userDict['group_name'], groupid, message.chat.id, userDict['admin_name'])
         bot.send_message(message.from_user.id, f"Группа {userDict['group_name']} успешно создана\nID вашей группы: "
                                                f"{groupid}\nИспользуйте этот ID для добавления других пользователей",
-                                               reply_markup=keyboard)
+                         reply_markup=keyboard)
 
 
 @bot.message_handler(content_types=['text'])
@@ -79,10 +93,10 @@ def location(message):
         lon = message.location.longitude
         location = dadata.geolocate(name="address", lat=lat, lon=lon, radius_meters=50)
         if operations.checkLocation(location):
-            usermessage = "Вы в фишашке! Сочуствую."
+            usermessage = "✅ Вас отметили"
             database.update_date(database.find_group_with_id(message.chat.id), message.chat.id)
         else:
-            usermessage = "К сожалению мы не зафиксировали ваше местоположение в финансовом университете"
+            usermessage = "❌ К сожалению мы не зафиксировали ваше местоположение в финансовом университете"
         bot.send_message(message.chat.id, usermessage)
 
 
@@ -123,7 +137,6 @@ def groupSearch(message):
 def callback_inline(call):
     if call.data:
         data = eval(call.data)
-        print(data)
         group = database.searchGroupData(data['group_id'])[0]
         database.response_handler(data['action'], group['group_name'], data['user'])
         print(data)
@@ -138,4 +151,38 @@ def callback_inline(call):
             bot.send_message(data['user'], f'Запрос на вступление в группу {group["group_name"]} был отклонён')
 
 
-bot.polling(none_stop=True)
+def schedule_checker():
+    while True:
+        schedule.run_pending()
+        sleep(1)
+
+
+def function_to_run(lesson_number):
+    return bot.send_message(968913533, operations.get_student_list(968913533, lesson_number))
+
+
+def send_message(id, message):
+    bot.send_message(id, message)
+
+
+def req_for_check_email():
+    print("Проверка почты")
+    users = database.get_time_of_group_members(database.find_group_with_id(968913533))
+    users_ids = []
+    for user in users:
+        users_ids.append(user['id'])
+    check_email(users_ids)
+
+
+if __name__ == '__main__':
+    schedule.every().day.at("09:45").do(function_to_run, lesson_number=1)
+    schedule.every().day.at("11:25").do(function_to_run, lesson_number=2)
+    schedule.every().day.at("13:05").do(function_to_run, lesson_number=3)
+    schedule.every().day.at("15:15").do(function_to_run, lesson_number=4)
+    schedule.every().day.at("17:35").do(function_to_run, lesson_number=5)
+    schedule.every().day.at("18:35").do(function_to_run, lesson_number=6)
+    schedule.every().day.at("20:20").do(function_to_run, lesson_number=7)
+    schedule.every(30).minutes.do(req_for_check_email)
+    Thread(target=schedule_checker).start()
+
+    bot.polling()
