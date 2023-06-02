@@ -139,7 +139,6 @@ def callback_inline(call):
         data = eval(call.data)
         group = database.searchGroupData(data['group_id'])[0]
         database.response_handler(data['action'], group['group_name'], data['user'])
-        print(data)
         if data['action'] == "1":
             keyboard = types.ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
             button_geo = types.KeyboardButton(text="Доброе утро, отправь мне свое местоположение",
@@ -162,11 +161,11 @@ def function_to_run(lesson_number):
 
 
 def send_message(id, message):
-    bot.send_message(id, message)
+    return bot.send_message(id, message)
 
 
 def req_for_check_email():
-    print("Проверка почты")
+    print("[INFO] Проверка почты", end=" ")
     users = database.get_time_of_group_members(database.find_group_with_id(968913533))
     users_ids = []
     for user in users:
@@ -175,14 +174,15 @@ def req_for_check_email():
 
 
 if __name__ == '__main__':
+    function_to_run(2)
     schedule.every().day.at("09:45").do(function_to_run, lesson_number=1)
-    schedule.every().day.at("11:25").do(function_to_run, lesson_number=2)
+    schedule.every().day.at("14:57").do(function_to_run, lesson_number=2)
     schedule.every().day.at("13:05").do(function_to_run, lesson_number=3)
     schedule.every().day.at("15:15").do(function_to_run, lesson_number=4)
     schedule.every().day.at("17:35").do(function_to_run, lesson_number=5)
     schedule.every().day.at("18:35").do(function_to_run, lesson_number=6)
     schedule.every().day.at("20:20").do(function_to_run, lesson_number=7)
-    schedule.every(30).minutes.do(req_for_check_email)
+    # schedule.every(5).seconds.do(req_for_check_email)
     Thread(target=schedule_checker).start()
 
     bot.polling()

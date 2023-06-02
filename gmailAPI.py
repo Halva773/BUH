@@ -79,24 +79,20 @@ def check_email(users_ids):
                 if p["mimeType"] in ["text/html", 'text/plain']:
 
                     decoded_data = base64.urlsafe_b64decode(p["body"]["data"]).decode("utf-8")
-                    print("Message: ", decoded_data)
                     # bot.send_message(chat_id=489311844, text=f" Message: {decoded_data}")
                     if message["id"] in what_has_been_sent_id:
                         pass
                     else:
                         what_has_been_sent_id.append(message["id"])
                         # print(f"🔴Subject: {subject} \n🟡From: {from_name} \n🟢Message: {decoded_data}")
-                        for user_id in users_ids:
-                            botstart.send_message(user_id, f"🔴Subject: {subject} \n🟡From: {from_name} \n🟢Message: {decoded_data}")
+                        botstart.send_message(-1001912865564, f"🔴Subject: {subject} \n🟡From: {from_name} \n🟢Message: {decoded_data}")
                 else:
-                    print(type(p))
                     try:
                         par = (p["parts"])
                         # print(par)
                         for i in par:
                             try:
                                 decoded_data = base64.urlsafe_b64decode(i["body"]["data"]).decode("utf-8")
-                                print("Message: ", decoded_data)
                                 # bot.send_message(chat_id=489311844, text=f" Message: {decoded_data}")
                                 if message["id"] in what_has_been_sent_id:
                                     pass
@@ -104,14 +100,11 @@ def check_email(users_ids):
                                     what_has_been_sent_id.append(message["id"])
                                     # print(f"🔴Subject: {subject} \n🟡From: {from_name} \n🟢Message: {decoded_data}")
 
-                                    for user_id in users_ids:
-                                        botstart.send_message(user_id, f"🔴Subject  : {subject} \n\n🟡From : {from_name} \n\n🟢Message : {decoded_data}")
+                                    botstart.send_message(-1001912865564, f"🔴Subject  : {subject} \n\n🟡From : {from_name} \n\n🟢Message : {decoded_data}")
                             except:
                                 pass
                     except KeyError:
                         pass
-
-                        print(" %%%%%%%%%%%%%%%%%%%%  ")
 
     except HttpError as error:
         print(f'An error occurred: {error}')

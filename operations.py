@@ -1,4 +1,5 @@
 from datetime import datetime
+from prettytable import PrettyTable
 
 import database
 
@@ -35,15 +36,36 @@ def get_student_list(admin_id, current_lesson):
 
 
 def generate_message(noted, current_lesson, group_name):
+    header = ['ФИО', 'Отметка']
+    name = []
     if len(noted) < 1:
         pass
     msg = f"Номер пары: {current_lesson}\nФИО\t\tОтметка\n"
     users = database.get_time_of_group_members(group_name)
     for user in users:
-        mark = ('*' if user['student_name'] in noted else "н")
-        student = user['student_name'].split()
-        msg += f"{student[0]} {student[1]}\t{mark}\n"
-    return msg
+        fio = user['student_name'].split()
+        name.append('*' if user['student_name'] in noted else "н")
+        name.append(f"{fio[0]} {fio[1]}")
+
+
+    columns = len(header)
+    table = PrettyTable(header)
+    name_data = name[:]
+    while name_data:
+        table.add_row(name_data[:columns])
+        name_data = name_data[columns:]
+    print(table, type(table))
+    return str(table)
+
+
+    table = PrettyTable(name)
+    columns = len(name)
+    name_data = name[:]
+    while name_data:
+        table.add_row(name_data[:columns])
+        name_data = name_data[:columns]
+    print(table, type(table))
+    return str(table)
 
 
 def get_current_time():
